@@ -13,7 +13,7 @@ class _PromoBannerWidgetState extends State<PromoBannerWidget> {
     {
       "image": "assets/b7.jpg",
       "title": "Tour Di sản miền Trung - HUTECH",
-      "subtitle": "Khám phá di sản cùng sinh viên"
+      "subtitle": "Thực tập tour miền Trung - hành trình di sản"
     },
     {
       "image": "assets/b6.jpg",

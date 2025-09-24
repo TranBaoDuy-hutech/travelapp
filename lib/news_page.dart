@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 import 'news_detail_page.dart';
 
 class NewsPage extends StatefulWidget {
@@ -10,14 +11,25 @@ class NewsPage extends StatefulWidget {
   State<NewsPage> createState() => _NewsPageState();
 }
 
-class _NewsPageState extends State<NewsPage> {
+class _NewsPageState extends State<NewsPage> with SingleTickerProviderStateMixin {
   List news = [];
   bool loading = true;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
     fetchNews();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchNews() async {
@@ -29,6 +41,7 @@ class _NewsPageState extends State<NewsPage> {
           news = data["data"];
           loading = false;
         });
+        _animationController.forward();
       } else {
         setState(() => loading = false);
         debugPrint("❌ Lỗi backend: ${response.statusCode}");
@@ -41,30 +54,66 @@ class _NewsPageState extends State<NewsPage> {
 
   Widget buildNewsImage(String? img, double size) {
     if (img == null || img.isEmpty) {
-      return Icon(Icons.image_not_supported, size: size * 0.8);
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow ?? Colors.grey[200],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(
+          Icons.image_not_supported_rounded,
+          size: size * 0.6,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
     }
 
     if (img.startsWith("http")) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Image.network(
           img,
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Icon(Icons.broken_image, size: size * 0.8),
+          errorBuilder: (_, __, ___) => Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerLow ?? Colors.grey[200],
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.broken_image_rounded,
+              size: size * 0.6,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
       );
     } else {
       String assetPath = img.startsWith("/assets/") ? img.replaceFirst("/assets/", "") : img;
       return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Image.asset(
           "assets/$assetPath",
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Icon(Icons.broken_image, size: size * 0.8),
+          errorBuilder: (_, __, ___) => Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerLow ?? Colors.grey[200],
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.image_not_supported_rounded,
+              size: size * 0.6,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
       );
     }
@@ -73,34 +122,39 @@ class _NewsPageState extends State<NewsPage> {
   @override
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
-    final screenH = MediaQuery.of(context).size.height;
-
-    // Ảnh trong danh sách tin = 25% chiều rộng màn hình
-    final imgSize = screenW * 0.25;
+    final imgSize = screenW * 0.28;
 
     return Scaffold(
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+        ),
+      )
           : CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: screenH * 0.1,
+            expandedHeight: screenW * 0.15,
             pinned: true,
             floating: false,
-            elevation: 6,
+            elevation: 0,
             backgroundColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+              titlePadding: const EdgeInsets.only(left: 16, bottom: 12),
               title: Row(
                 children: [
-                  const Icon(Icons.announcement, color: Colors.white, size: 26),
-                  const SizedBox(width: 10),
+                  Icon(
+                    Icons.announcement_rounded,
+                    color: Colors.white,
+                    size: screenW * 0.07,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       "Tin Tức | Việt Lữ Travel",
-                      style: TextStyle(
-                        fontSize: screenW * 0.05,
-                        fontWeight: FontWeight.bold,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: screenW * 0.045,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -109,9 +163,12 @@ class _NewsPageState extends State<NewsPage> {
                 ],
               ),
               background: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF2196F3), Color(0xFF64B5F6)],
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primaryContainer ?? Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -119,66 +176,98 @@ class _NewsPageState extends State<NewsPage> {
               ),
             ),
           ),
-
-          // Danh sách tin
           SliverList(
             delegate: SliverChildBuilderDelegate(
                   (context, index) {
                 final item = news[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NewsDetailPage(item: item),
-                      ),
-                    );
-                  },
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: buildNewsImage(item["ImageUrl"]?.toString(), imgSize),
+                return AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return FadeTransition(
+                      opacity: Tween<double>(begin: 0, end: 1).animate(
+                        CurvedAnimation(
+                          parent: _animationController,
+                          curve: Interval(0.1 * index / news.length, 1.0, curve: Curves.easeInOut),
                         ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item["Title"] ?? "Không có tiêu đề",
-                                  style: TextStyle(
-                                    fontSize: screenW * 0.045,
-                                    fontWeight: FontWeight.bold,
+                      ),
+                      child: ScaleTransition(
+                        scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                          CurvedAnimation(
+                            parent: _animationController,
+                            curve: Interval(0.1 * index / news.length, 1.0, curve: Curves.easeOut),
+                          ),
+                        ),
+                        child: GestureDetector(
+                          onTapDown: (_) => HapticFeedback.selectionClick(),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => NewsDetailPage(item: item),
+                              ),
+                            );
+                          },
+                          child: Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            color: Theme.of(context).colorScheme.surface,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.08),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  item["Content"] ?? "",
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: screenW * 0.035,
-                                    color: Colors.black87,
+                                ],
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: buildNewsImage(item["ImageUrl"]?.toString(), imgSize),
                                   ),
-                                ),
-                              ],
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item["Title"] ?? "Không có tiêu đề",
+                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            item["Content"] ?? "",
+                                            maxLines: 3,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 );
               },
               childCount: news.length,

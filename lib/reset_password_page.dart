@@ -15,7 +15,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final TextEditingController passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool isLoading = false;
-  int remainingSeconds = 300; // 5 phút = 300 giây
+  int remainingSeconds = 300;
   Timer? _timer;
 
   @override

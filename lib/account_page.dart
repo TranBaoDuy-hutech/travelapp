@@ -106,11 +106,11 @@ class _AccountPageState extends State<AccountPage> {
                       child: CircleAvatar(
                         radius: 60,
                         backgroundColor: Colors.grey[100],
-                        backgroundImage: _avatarFile != null ? FileImage(_avatarFile!) : null,
-                        child: _avatarFile == null
-                            ? const Icon(Icons.person, size: 60, color: Colors.white)
-                            : null,
+                        backgroundImage: _avatarFile != null
+                            ? FileImage(_avatarFile!)
+                            : const AssetImage("assets/BDUY.jpg"),
                       ),
+
                     ),
                   ),
                   const SizedBox(height: 8),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:diacritic/diacritic.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'tour_detail_page.dart';
@@ -12,17 +13,29 @@ class ToursPage extends StatefulWidget {
   State<ToursPage> createState() => _ToursPageState();
 }
 
-class _ToursPageState extends State<ToursPage> {
+class _ToursPageState extends State<ToursPage> with SingleTickerProviderStateMixin {
   List<dynamic> tours = [];
   List<dynamic> filteredTours = [];
   bool loading = true;
-
   final NumberFormat currencyFormatter = NumberFormat("#,##0", "vi_VN");
+  final TextEditingController _searchController = TextEditingController();
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
     fetchTours();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchTours() async {
@@ -34,6 +47,7 @@ class _ToursPageState extends State<ToursPage> {
           tours = data["data"];
           filteredTours = tours;
           loading = false;
+          _animationController.forward();
         });
       } else {
         setState(() => loading = false);
@@ -57,18 +71,42 @@ class _ToursPageState extends State<ToursPage> {
 
   Widget buildTourImage(String? img, double size) {
     if (img == null || img.isEmpty) {
-      return Icon(Icons.image_not_supported, size: size * 0.8);
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(
+          Icons.image_not_supported_rounded,
+          size: size * 0.6,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
     }
 
     if (img.startsWith("http")) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Image.network(
           img,
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Icon(Icons.broken_image, size: size * 0.8),
+          errorBuilder: (_, __, ___) => Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.broken_image_rounded,
+              size: size * 0.6,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
       );
     }
@@ -76,13 +114,25 @@ class _ToursPageState extends State<ToursPage> {
     String assetPath = img.startsWith("/assets/") ? img.replaceFirst("/assets/", "") : img;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Image.asset(
         "assets/$assetPath",
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported, size: size * 0.8),
+        errorBuilder: (_, __, ___) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(
+            Icons.image_not_supported_rounded,
+            size: size * 0.6,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }
@@ -90,20 +140,20 @@ class _ToursPageState extends State<ToursPage> {
   @override
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
-    final screenH = MediaQuery.of(context).size.height;
-
-    // ảnh tour chiếm 25% chiều rộng màn hình
-    final imgSize = screenW * 0.25;
+    final imgSize = screenW * 0.28;
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(screenH * 0.1),
+        preferredSize: Size.fromHeight(screenW * 0.15),
         child: AppBar(
-          elevation: 8,
+          elevation: 0,
           flexibleSpace: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF2196F3), Color(0xFF64B5F6)],
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primaryContainer,
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -111,14 +161,18 @@ class _ToursPageState extends State<ToursPage> {
           ),
           title: Row(
             children: [
-              const Icon(Icons.map, color: Colors.white, size: 28),
+              Icon(
+                Icons.map_rounded,
+                color: Colors.white,
+                size: screenW * 0.07,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   "Danh sách tour | Việt Lữ Travel",
-                  style: TextStyle(
-                    fontSize: screenW * 0.05, // responsive font
-                    fontWeight: FontWeight.bold,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: screenW * 0.05,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -129,23 +183,44 @@ class _ToursPageState extends State<ToursPage> {
         ),
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+        ),
+      )
           : Column(
         children: [
           // Thanh tìm kiếm
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16.0),
             child: TextField(
+              controller: _searchController,
               onChanged: filterTours,
               decoration: InputDecoration(
                 hintText: "Tìm kiếm tour...",
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 filled: true,
-                fillColor: Colors.grey[200],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                fillColor: Theme.of(context).colorScheme.surfaceContainer,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  ),
                 ),
               ),
             ),
@@ -153,7 +228,14 @@ class _ToursPageState extends State<ToursPage> {
           // Danh sách tour
           Expanded(
             child: filteredTours.isEmpty
-                ? const Center(child: Text("Không tìm thấy tour nào."))
+                ? Center(
+              child: Text(
+                "Không tìm thấy tour nào.",
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            )
                 : ListView.builder(
               itemCount: filteredTours.length,
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -167,6 +249,7 @@ class _ToursPageState extends State<ToursPage> {
 
                 return GestureDetector(
                   onTap: () {
+                    HapticFeedback.selectionClick();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -174,53 +257,72 @@ class _ToursPageState extends State<ToursPage> {
                       ),
                     );
                   },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
+                  child: AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: Tween<double>(begin: 0.95, end: 1.0)
+                            .animate(CurvedAnimation(
+                          parent: _animationController,
+                          curve: Interval(
+                            0.1 * index,
+                            0.1 * index + 0.3,
+                            curve: Curves.easeOut,
+                          ),
+                        ))
+                            .value,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 15,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: child,
                         ),
-                      ],
-                    ),
+                      );
+                    },
                     child: Row(
                       children: [
                         buildTourImage(tour["ImageUrl"], imgSize),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   tour["TourName"] ?? "-",
-                                  style: TextStyle(
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontSize: screenW * 0.045,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 8),
                                 Text(
                                   tour["Location"] ?? "-",
-                                  style: TextStyle(
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     fontSize: screenW * 0.035,
-                                    color: Colors.grey[700],
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 8),
                                 Text(
                                   priceStr,
-                                  style: TextStyle(
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                     fontSize: screenW * 0.04,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.teal,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               ],
