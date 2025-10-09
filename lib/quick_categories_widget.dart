@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'adventure_screen.dart';
+import 'bien_screen.dart';
+import 'city_tour_screen.dart';
+import 'family_screen.dart';
+import 'nui_screen.dart';
+
 final List<Map<String, dynamic>> categories = [
   {"name": "Biển", "icon": Icons.beach_access},
   {"name": "Núi", "icon": Icons.terrain},
@@ -34,6 +40,19 @@ class _QuickCategoriesWidgetState extends State<QuickCategoriesWidget> {
           return GestureDetector(
             onTap: () {
               setState(() => selectedCategory = category["name"]);
+
+              if (category["name"] == "Biển") {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SeaScreen()));
+              } else if (category["name"] == "Núi") {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const NuiScreen()));
+              } else if (category["name"] == "City Tour") {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const CityTourScreen()));
+              } else if (category["name"] == "Adventure") {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const AdventureScreen()));
+              } else if (category["name"] == "Family") {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const FamilyScreen()));
+              }
+
               widget.onCategoryTap?.call(category["name"]);
             },
             child: AnimatedContainer(

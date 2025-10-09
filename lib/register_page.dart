@@ -649,7 +649,22 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                             fontSize: 14,
                                           ),
                                         ),
+
                                       ],
+                                    ),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: Text(
+                                      "© 2025 Trần Bảo Duy. All rights reserved.",
+                                      style: TextStyle(
+                                        color: Colors.blue.withOpacity(0.7),
+                                        fontSize: 15,
+                                        fontFamily: 'Poppins',
+                                      ),
                                     ),
                                   ),
                                 ),

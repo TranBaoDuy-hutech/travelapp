@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:http/http.dart' as http;
 
+import 'admin_analysis_page.dart';
+
 class AdminChatPage extends StatefulWidget {
   const AdminChatPage({super.key});
 
@@ -93,6 +95,48 @@ class _AdminChatPageState extends State<AdminChatPage> {
     msgController.clear();
   }
 
+  Future<void> _showAnalysisDialog() async {
+    try {
+      final res = await http.get(Uri.parse("$baseUrl/chat/analysis/summary"));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final sentiment = data['sentiment'] as Map<String, dynamic>;
+        final category = data['category'] as Map<String, dynamic>;
+
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text("📊 Tổng hợp phân tích"),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Cảm xúc:", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...sentiment.entries.map((e) => Text("${e.key}: ${e.value}")),
+                    const SizedBox(height: 12),
+                    const Text("Phân loại chủ đề:", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...category.entries.map((e) => Text("${e.key}: ${e.value}")),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Đóng"),
+                )
+              ],
+            );
+          },
+        );
+      } else {
+        print("Lỗi phân tích: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("Lỗi phân tích: $e");
+    }
+  }
+
   @override
   void dispose() {
     channel?.sink.close();
@@ -151,7 +195,26 @@ class _AdminChatPageState extends State<AdminChatPage> {
           },
         ),
         backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics),
+            tooltip: "Phân tích khách này",
+            onPressed: () {
+              if (selectedCustomerId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdminAnalysisPage(customerId: selectedCustomerId), // 👈 truyền id
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+
+
       ),
+
       body: Column(
         children: [
           // Nội dung chat

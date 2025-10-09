@@ -15,46 +15,69 @@ class TourDetailPage extends StatelessWidget {
   }
 
   Widget buildTourImage(String? img) {
-    if (img == null || img.isEmpty) {
-      return const Icon(Icons.image_not_supported, size: 200);
-    }
-
-    if (img.startsWith("http")) {
-      return Image.network(
-        img,
-        width: double.infinity,
-        height: 200,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) =>
-        const Icon(Icons.broken_image, size: 200),
-      );
-    }
-
-    String assetPath = img;
-    if (assetPath.startsWith("/assets/")) {
-      assetPath = assetPath.replaceFirst("/assets/", "");
-    }
-
-    return Image.asset(
-      "assets/$assetPath",
-      width: double.infinity,
-      height: 200,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) =>
-      const Icon(Icons.image_not_supported, size: 200),
+    return Hero(
+      tag: tour["TourName"] ?? "tour_image",
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          height: 250,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: img == null || img.isEmpty
+              ? const Icon(Icons.image_not_supported, size: 100, color: Colors.grey)
+              : img.startsWith("http")
+              ? Image.network(
+            img,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const Center(child: CircularProgressIndicator());
+            },
+            errorBuilder: (context, error, stackTrace) => const Icon(
+              Icons.broken_image,
+              size: 100,
+              color: Colors.grey,
+            ),
+          )
+              : Image.asset(
+            "assets/${img.replaceFirst("/assets/", "")}",
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => const Icon(
+              Icons.image_not_supported,
+              size: 100,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget buildInfoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 22, color: Colors.blueAccent),
-          const SizedBox(width: 8),
-          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(child: Text(value)),
+          Icon(icon, size: 24, color: Colors.blueAccent),
+          const SizedBox(width: 12),
+          Text(
+            "$label: ",
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+          ),
         ],
       ),
     );
@@ -63,40 +86,75 @@ class TourDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(tour["TourName"] ?? "Chi tiết Tour")),
-      body: SingleChildScrollView(
+      appBar: AppBar(
+        title: Text(
+          tour["TourName"] ?? "Chi tiết Tour",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            buildTourImage(tour["ImageUrl"]),
-            const SizedBox(height: 16),
-            buildInfoRow(Icons.flag, "Tên tour", tour["TourName"] ?? "-"),
-            buildInfoRow(Icons.place, "Địa điểm", tour["Location"] ?? "-"),
-            buildInfoRow(Icons.attach_money, "Giá", formatPrice(tour["Price"])),
-            buildInfoRow(Icons.schedule, "Thời gian", "${tour["DurationDays"] ?? "-"} ngày"),
-            buildInfoRow(Icons.calendar_today, "Ngày khởi hành", tour["StartDate"] ?? "-"),
-            buildInfoRow(Icons.directions_bus, "Điểm xuất phát", tour["DepartureLocation"] ?? "-"),
-            buildInfoRow(Icons.hotel, "Khách sạn", tour["HotelName"] ?? "-"),
-            buildInfoRow(Icons.local_fire_department, "Tour Hot", (tour["IsHot"] == true) ? "Có" : "Không"),
-            buildInfoRow(Icons.map, "Phương tiện", tour["Transportation"] ?? "-"),
-            if (tour["Itinerary"] != null && tour["Itinerary"] != "")
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildTourImage(tour["ImageUrl"]),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Thông tin Tour",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  buildInfoRow(Icons.flag, "Tên tour", tour["TourName"] ?? "-"),
+                  buildInfoRow(Icons.place, "Địa điểm", tour["Location"] ?? "-"),
+                  buildInfoRow(Icons.attach_money, "Giá", formatPrice(tour["Price"])),
+                  buildInfoRow(Icons.schedule, "Thời gian", "${tour["DurationDays"] ?? "-"} ngày"),
+                  buildInfoRow(Icons.calendar_today, "Ngày khởi hành", tour["StartDate"] ?? "-"),
+                  buildInfoRow(Icons.directions_bus, "Điểm xuất phát", tour["DepartureLocation"] ?? "-"),
+                  buildInfoRow(Icons.hotel, "Khách sạn", tour["HotelName"] ?? "-"),
+                  buildInfoRow(Icons.local_fire_department, "Tour Hot", (tour["IsHot"] == true) ? "Có" : "Không"),
+                  buildInfoRow(Icons.map, "Phương tiện", tour["Transportation"] ?? "-"),
+                ],
+              ),
+            ),
+          ),
+          if (tour["Itinerary"] != null && tour["Itinerary"] != "")
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.only(top: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: const [
-                        Icon(Icons.description, size: 22, color: Colors.blueAccent),
-                        SizedBox(width: 8),
+                        Icon(Icons.description, size: 24, color: Colors.blueAccent),
+                        SizedBox(width: 12),
                         Text(
-                          "Lịch trình:",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          "Lịch trình",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     ..._splitItineraryByDay(tour["Itinerary"] ?? "").map(
                           (line) {
                         final regex = RegExp(r'^(Ngày\s*\d+:?)', caseSensitive: false);
@@ -104,69 +162,69 @@ class TourDetailPage extends StatelessWidget {
                         if (match != null) {
                           String day = match.group(0)!;
                           String rest = line.substring(match.end).trim();
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 10), // tăng khoảng cách
-                            child: RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: day + " ",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: rest,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
+                          return ExpansionTile(
+                            title: Text(
+                              day,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                                fontSize: 16,
                               ),
                             ),
-                          );
-                        } else {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(
-                              line,
-                              style: const TextStyle(fontSize: 16),
-                            ),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  rest,
+                                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                                ),
+                              ),
+                            ],
                           );
                         }
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            line,
+                            style: const TextStyle(fontSize: 16, color: Colors.black87),
+                          ),
+                        );
                       },
                     ),
                   ],
                 ),
               ),
-
-            const SizedBox(height: 24),
-            // Nút đặt tour
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BookingPage(tour: tour),
-                    ),
-                  );
-                },
-                child: const Text("Đặt Tour"),
-              ),
-
             ),
-          ],
-        ),
+          const SizedBox(height: 24),
+          Center(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BookingPage(tour: tour),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 5,
+              ),
+              child: const Text("Đặt Tour Ngay"),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 }
+
 List<String> _splitItineraryByDay(String itinerary) {
-  // Regex tìm "Ngày" và tách
   final regex = RegExp(r'(Ngày\s*\d+:?)', caseSensitive: false);
   final matches = regex.allMatches(itinerary).toList();
 

@@ -43,12 +43,12 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
 
         setState(() {
           bookings = data is List ? data : [data];
-          // sắp xếp theo ngày đặt gần nhất
           bookings.sort((a, b) {
             final da = DateTime.parse(a['date']);
             final db = DateTime.parse(b['date']);
-            return db.compareTo(da); // ngày mới nhất lên trước
+            return db.compareTo(da);
           });
+          globals.myBookings = bookings;   // <<< lưu ra global
           isLoading = false;
           errorMessage = null;
         });

@@ -14,7 +14,7 @@ class BookingPage extends StatefulWidget {
 
 class _BookingPageState extends State<BookingPage> {
   final _formKey = GlobalKey<FormState>();
-  int _numGuests = 1;
+  int _numGuests = 10;
   DateTime? _selectedDate;
   String _specialRequests = "";
   bool _isLoading = false;
@@ -68,6 +68,7 @@ class _BookingPageState extends State<BookingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3), // Show SnackBar for 3 seconds
             content: Text(
               "🎉 Đặt tour thành công!\nMã Booking: $bookingID\n" +
                   (emailSent
@@ -76,6 +77,12 @@ class _BookingPageState extends State<BookingPage> {
             ),
           ),
         );
+
+        // Wait for SnackBar to disappear, then navigate back to Tour page
+        await Future.delayed(const Duration(seconds: 3));
+        if (mounted) {
+          Navigator.pop(context, bookingID); // Return bookingID to Tour page
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("❌ Lỗi: $e\nEmail có thể chưa gửi được.")),
@@ -176,7 +183,6 @@ class _BookingPageState extends State<BookingPage> {
                         if (n == null || n < 10) return "Phải là số >= 10";
                         if (n > 50) return "Số khách tối đa là 50";
                         return null;
-
                       },
                       onChanged: (val) {
                         final n = int.tryParse(val) ?? 1;
@@ -194,8 +200,7 @@ class _BookingPageState extends State<BookingPage> {
                       title: Text(_selectedDate == null
                           ? "Chọn ngày khởi hành"
                           : "Ngày: ${DateFormat('dd/MM/yyyy').format(_selectedDate!)}"),
-                      trailing:
-                      const Icon(Icons.calendar_today, color: Colors.teal),
+                      trailing: const Icon(Icons.calendar_today, color: Colors.teal),
                       onTap: _isLoading
                           ? null
                           : () async {
@@ -203,8 +208,7 @@ class _BookingPageState extends State<BookingPage> {
                           context: context,
                           initialDate: DateTime.now(),
                           firstDate: DateTime.now(),
-                          lastDate:
-                          DateTime.now().add(const Duration(days: 365)),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
                         );
                         if (picked != null) {
                           setState(() => _selectedDate = picked);

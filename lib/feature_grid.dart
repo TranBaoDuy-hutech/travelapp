@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import 'attraction_page.dart';
+import 'bus_page.dart';
+import 'cruise_page.dart';
+import 'experience_page.dart';
+import 'flight_page.dart';
+import 'hotel_page.dart';
+import 'promotion_page.dart';
 import 'contact_page.dart';
 
 class FeatureGridWidget extends StatelessWidget {
@@ -9,11 +16,11 @@ class FeatureGridWidget extends StatelessWidget {
     final features = [
       {"icon": Icons.flight, "title": "Chuyến bay", "color": Colors.blue},
       {"icon": Icons.hotel, "title": "Khách sạn", "color": Colors.green},
-      {"icon": Icons.tour, "title": "Tour", "color": Colors.orange},
+      {"icon": Icons.explore, "title": "Trải nghiệm", "color": Colors.orange}, // Thay Tour
       {"icon": Icons.directions_bus, "title": "Xe khách", "color": Colors.red},
       {"icon": Icons.directions_boat, "title": "Du thuyền", "color": Colors.indigo},
       {"icon": Icons.local_offer, "title": "Khuyến mãi", "color": Colors.purple},
-      {"icon": Icons.car_rental, "title": "Thuê xe", "color": Colors.teal},
+      {"icon": Icons.landscape, "title": "Tham quan", "color": Colors.teal}, // Thay Thuê xe
       {"icon": Icons.phone, "title": "Liên hệ", "color": Colors.brown},
     ];
 
@@ -59,13 +66,57 @@ class FeatureGridWidget extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
-        if (title == "Liên hệ") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ContactPage()),
-          );
-        } else {
-          debugPrint("Tapped on $title");
+        switch (title) {
+          case "Liên hệ":
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ContactPage()),
+            );
+            break;
+          case "Khuyến mãi":
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PromotionPage()),
+            );
+            break;
+          case "Chuyến bay":
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const FlightPage()),
+            );
+            break;
+          case "Khách sạn":
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const HotelPage()),
+            );
+            break;
+          case "Xe khách":
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BusPage()),
+            );
+            break;
+          case "Du thuyền":
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CruisePage()),
+            );
+            break;
+          case "Trải nghiệm":
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ExperiencePage()),
+            );
+            break;
+          case "Tham quan":
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AttractionPage()),
+            );
+            break;
+          default:
+            debugPrint("Tapped on $title");
         }
       },
       child: Column(
