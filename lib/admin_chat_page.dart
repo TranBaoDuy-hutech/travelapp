@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:flutter_chat_bubble/chat_bubble.dart';
+import 'package:intl/intl.dart';
 import 'admin_analysis_page.dart';
 
 class AdminChatPage extends StatefulWidget {
@@ -22,6 +23,8 @@ class _AdminChatPageState extends State<AdminChatPage> {
   String? selectedCustomerName;
   WebSocketChannel? channel;
   TextEditingController msgController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  Map<int, int> unreadCounts = {};
 
   @override
   void initState() {
@@ -36,11 +39,30 @@ class _AdminChatPageState extends State<AdminChatPage> {
         setState(() {
           customers = jsonDecode(res.body);
         });
+        await fetchUnreadCounts();
       } else {
         print("Lỗi load customers: ${res.statusCode}");
       }
     } catch (e) {
       print("Lỗi load customers: $e");
+    }
+  }
+
+  Future<void> fetchUnreadCounts() async {
+    try {
+      for (var c in customers) {
+        final id = c['CustomerID'];
+        final unreadRes = await http.get(Uri.parse("$baseUrl/chat/unread/$id"));
+        if (unreadRes.statusCode == 200) {
+          final msgs = jsonDecode(unreadRes.body);
+          unreadCounts[id] = msgs.length;
+        } else {
+          unreadCounts[id] = 0;
+        }
+      }
+      setState(() {});
+    } catch (e) {
+      print("Lỗi lấy unread count: $e");
     }
   }
 
@@ -50,6 +72,17 @@ class _AdminChatPageState extends State<AdminChatPage> {
       if (res.statusCode == 200) {
         setState(() {
           messages = jsonDecode(res.body)["chat"];
+        });
+        await http.post(Uri.parse("$baseUrl/chat/mark-read/$customerId"));
+        unreadCounts[customerId] = 0;
+        setState(() {});
+        // Cuộn xuống cuối khi tải tin nhắn
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
         });
       } else {
         print("Lỗi load messages: ${res.statusCode}");
@@ -69,7 +102,21 @@ class _AdminChatPageState extends State<AdminChatPage> {
       final msg = jsonDecode(data);
       setState(() {
         messages.add(msg);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        });
       });
+
+      if (msg['IsFromAdmin'] == false &&
+          selectedCustomerId != msg['CustomerID']) {
+        unreadCounts[msg['CustomerID']] =
+            (unreadCounts[msg['CustomerID']] ?? 0) + 1;
+        setState(() {});
+      }
     });
   }
 
@@ -95,91 +142,105 @@ class _AdminChatPageState extends State<AdminChatPage> {
     msgController.clear();
   }
 
-  Future<void> _showAnalysisDialog() async {
-    try {
-      final res = await http.get(Uri.parse("$baseUrl/chat/analysis/summary"));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final sentiment = data['sentiment'] as Map<String, dynamic>;
-        final category = data['category'] as Map<String, dynamic>;
-
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: const Text("📊 Tổng hợp phân tích"),
-              content: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Cảm xúc:", style: TextStyle(fontWeight: FontWeight.bold)),
-                    ...sentiment.entries.map((e) => Text("${e.key}: ${e.value}")),
-                    const SizedBox(height: 12),
-                    const Text("Phân loại chủ đề:", style: TextStyle(fontWeight: FontWeight.bold)),
-                    ...category.entries.map((e) => Text("${e.key}: ${e.value}")),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Đóng"),
-                )
-              ],
-            );
-          },
-        );
-      } else {
-        print("Lỗi phân tích: ${res.statusCode}");
-      }
-    } catch (e) {
-      print("Lỗi phân tích: $e");
+  String formatTime(String time) {
+    final dateTime = DateTime.parse(time);
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    if (difference.inDays < 1) {
+      return DateFormat('HH:mm').format(dateTime);
+    } else {
+      return DateFormat('dd/MM').format(dateTime);
     }
+  }
+
+  Widget _buildQuickReply(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ActionChip(
+        label: Text(text),
+        onPressed: () {
+          msgController.text = text;
+          sendMessage();
+        },
+        backgroundColor: Colors.blue[100],
+        labelStyle: const TextStyle(color: Colors.black87),
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     channel?.sink.close();
+    msgController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Nếu chưa chọn khách hàng → hiển thị danh sách
     if (selectedCustomerId == null) {
       return Scaffold(
         appBar: AppBar(
           title: const Text("👥 Danh sách khách hàng"),
           backgroundColor: Colors.blue,
         ),
-        body: ListView.builder(
-          itemCount: customers.length,
-          itemBuilder: (context, index) {
-            final customer = customers[index];
-            final id = customer['CustomerID'];
-            final userName = customer['UserName'] ?? 'Khách $id';
+        body: RefreshIndicator(
+          onRefresh: fetchCustomers,
+          child: ListView.builder(
+            itemCount: customers.length,
+            itemBuilder: (context, index) {
+              final customer = customers[index];
+              final id = customer['CustomerID'];
+              final userName = customer['UserName'] ?? 'Khách $id';
+              final unread = unreadCounts[id] ?? 0;
 
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Text(
-                    userName.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                child: InkWell(
+                  onTap: () => selectCustomer(id, userName),
+                  borderRadius: BorderRadius.circular(8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue,
+                      child: Text(
+                        userName.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    title: Text(
+                      userName,
+                      style: TextStyle(
+                        fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal,
+                        color: unread > 0 ? Colors.black87 : Colors.black54,
+                      ),
+                    ),
+                    subtitle: Text(
+                      "ID: $id${customer['LastMessageTime'] != null ? ' • ${formatTime(customer['LastMessageTime'])}' : ''}",
+                    ),
+                    trailing: unread > 0
+                        ? Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        "$unread",
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 12),
+                      ),
+                    )
+                        : null,
+                    tileColor: unread > 0 ? Colors.blue[50] : null,
                   ),
                 ),
-                title: Text(userName),
-                subtitle: Text("ID: $id"),
-                onTap: () => selectCustomer(id, userName),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       );
     }
 
-    // Nếu đã chọn khách hàng → hiển thị full màn hình chat
     return Scaffold(
       appBar: AppBar(
         title: Text("💬 Chat với $selectedCustomerName"),
@@ -192,6 +253,7 @@ class _AdminChatPageState extends State<AdminChatPage> {
               messages = [];
               channel?.sink.close();
             });
+            fetchCustomers();
           },
         ),
         backgroundColor: Colors.blue,
@@ -204,30 +266,26 @@ class _AdminChatPageState extends State<AdminChatPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => AdminAnalysisPage(customerId: selectedCustomerId), // 👈 truyền id
+                    builder: (_) =>
+                        AdminAnalysisPage(customerId: selectedCustomerId),
                   ),
                 );
               }
             },
           ),
         ],
-
-
       ),
-
       body: Column(
         children: [
-          // Nội dung chat
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(12),
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
                 final isAdmin = msg['IsFromAdmin'] ?? false;
-
-                // Cảm xúc
-                String? sentiment = msg['Sentiment'];
+                String sentiment = msg['Sentiment'] ?? '';
                 IconData? sentimentIcon;
                 Color sentimentColor = Colors.grey;
 
@@ -242,30 +300,36 @@ class _AdminChatPageState extends State<AdminChatPage> {
                   sentimentColor = Colors.grey;
                 }
 
-                // Phân loại
                 String? category = msg['Category'];
 
-                return Align(
-                  alignment:
-                  isAdmin ? Alignment.centerRight : Alignment.centerLeft,
+                return ChatBubble(
+                  clipper: ChatBubbleClipper5(
+                      type: isAdmin ? BubbleType.sendBubble : BubbleType.receiverBubble),
+                  alignment: isAdmin ? Alignment.topRight : Alignment.topLeft,
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  backGroundColor: isAdmin ? Colors.blue[600] : Colors.grey[200],
                   child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.all(12),
                     constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.7),
-                    decoration: BoxDecoration(
-                      color: isAdmin ? Colors.blue[200] : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(16),
+                      maxWidth: MediaQuery.of(context).size.width * 0.7,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           msg['Content'] ?? '',
-                          style: const TextStyle(
-                              fontSize: 15, color: Colors.black87),
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: isAdmin ? Colors.white : Colors.black87,
+                          ),
                         ),
-                        if (!isAdmin && (sentiment != null || category != null))
+                        Text(
+                          formatTime(msg['CreatedAt'] ?? DateTime.now().toString()),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isAdmin ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                        if (!isAdmin && (sentiment.isNotEmpty || category != null))
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Column(
@@ -279,10 +343,9 @@ class _AdminChatPageState extends State<AdminChatPage> {
                                           color: sentimentColor, size: 16),
                                       const SizedBox(width: 4),
                                       Text(
-                                        sentiment ?? '',
+                                        sentiment,
                                         style: TextStyle(
-                                            color: sentimentColor,
-                                            fontSize: 12),
+                                            color: sentimentColor, fontSize: 12),
                                       ),
                                     ],
                                   ),
@@ -302,8 +365,17 @@ class _AdminChatPageState extends State<AdminChatPage> {
               },
             ),
           ),
-
-          // Ô nhập tin nhắn
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Row(
+              children: [
+                _buildQuickReply("Xin chào, tôi có thể giúp gì?"),
+                _buildQuickReply("Cảm ơn bạn đã liên hệ!"),
+                _buildQuickReply("Vui lòng cung cấp thêm thông tin."),
+              ],
+            ),
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             color: Colors.grey[100],
@@ -327,10 +399,11 @@ class _AdminChatPageState extends State<AdminChatPage> {
                 ),
                 const SizedBox(width: 8),
                 CircleAvatar(
-                  backgroundColor: Colors.blue,
+                  radius: 24,
+                  backgroundColor: msgController.text.isEmpty ? Colors.grey : Colors.blue,
                   child: IconButton(
                     icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: sendMessage,
+                    onPressed: msgController.text.isEmpty ? null : sendMessage,
                   ),
                 ),
               ],

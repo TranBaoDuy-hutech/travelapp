@@ -643,8 +643,8 @@ class _NewsPageState extends State<NewsPage> with SingleTickerProviderStateMixin
                                               children: [
                                                 Expanded(
                                                   child: Text(
-                                                    item["Date"] != null
-                                                        ? item["Date"]
+                                                    item["CreatedAt"] != null
+                                                        ? item["CreatedAt"]
                                                         : "Chưa có ngày",
                                                     style: TextStyle(
                                                       fontSize: 11,
@@ -653,6 +653,7 @@ class _NewsPageState extends State<NewsPage> with SingleTickerProviderStateMixin
                                                     ),
                                                   ),
                                                 ),
+
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(
                                                     horizontal: 16,

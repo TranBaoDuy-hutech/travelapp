@@ -441,7 +441,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with SingleTick
                     },
                   ),
                   ManagementButton(
-                    title: "Phân Công HDV",
+                    title: "Lịch HDV",
                     icon: Icons.assignment_ind,
                     gradient: const [Color(0xFFFDCB6E), Color(0xFFF6B93B)],
                     onTap: () {

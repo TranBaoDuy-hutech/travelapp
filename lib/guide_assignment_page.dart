@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 class GuideAssignmentPage extends StatefulWidget {
   const GuideAssignmentPage({super.key});
@@ -31,7 +32,7 @@ class _GuideAssignmentPageState extends State<GuideAssignmentPage> {
       await http.get(Uri.parse('http://10.0.2.2:8000/admin/assignments'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print("Assignments raw data: $data"); // debug API response
+        print("Assignments raw data: $data");
         setState(() {
           assignments = data['data'] ?? [];
           print("Assignments length: ${assignments.length}");
@@ -50,6 +51,26 @@ class _GuideAssignmentPageState extends State<GuideAssignmentPage> {
   }
 
   Future<void> deleteAssignment(int tourId, int guideId) async {
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xác nhận xóa"),
+        content: const Text("Bạn có chắc muốn xóa phân công này?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Hủy"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Xóa", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     try {
       final response = await http.delete(
         Uri.parse(
@@ -58,49 +79,162 @@ class _GuideAssignmentPageState extends State<GuideAssignmentPage> {
       print("Delete response status: ${response.statusCode}");
       print("Delete response body: ${response.body}");
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Xóa thành công")));
-        fetchAssignments(); // refresh list
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Xóa thành công")),
+        );
+        fetchAssignments();
       } else {
         throw Exception("Failed to delete assignment");
       }
     } catch (e) {
       print("Error deleting assignment: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi: $e")),
+      );
+    }
+  }
+
+  String formatDate(String date) {
+    try {
+      final dateTime = DateTime.parse(date);
+      return DateFormat('dd/MM/yyyy').format(dateTime);
+    } catch (e) {
+      return date;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-      AppBar(title: const Text("Guide Assignments"), backgroundColor: Colors.teal),
+      appBar: AppBar(
+        title: const Text("Phân công HDV"),
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: fetchAssignments,
+            tooltip: "Làm mới danh sách",
+          ),
+        ],
+      ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Colors.teal),
+            SizedBox(height: 16),
+            Text("Đang tải dữ liệu...", style: TextStyle(fontSize: 16)),
+          ],
+        ),
+      )
           : errorMessage != null
-          ? Center(child: Text("Error: $errorMessage"))
-          : assignments.isEmpty
-          ? const Center(child: Text("Chưa có phân công HDV nào"))
-          : ListView.builder(
-        itemCount: assignments.length,
-        itemBuilder: (context, index) {
-          final a = assignments[index];
-          return Card(
-            margin: const EdgeInsets.all(8),
-            child: ListTile(
-              leading: const Icon(Icons.person, color: Colors.teal),
-              title: Text("${a['GuideName']} (${a['Role']})"),
-              subtitle: Text(
-                  "Tour: ${a['TourName']} | Ngày: ${a['AssignmentDate']}"),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () =>
-                    deleteAssignment(a['TourID'], a['GuideID']),
-              ),
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              "Lỗi: $errorMessage",
+              style: const TextStyle(fontSize: 16, color: Colors.red),
+              textAlign: TextAlign.center,
             ),
-          );
-        },
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: fetchAssignments,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: const Text("Thử lại", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      )
+          : assignments.isEmpty
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.info_outline, color: Colors.grey, size: 48),
+            const SizedBox(height: 16),
+            const Text(
+              "Chưa có phân công HDV nào",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: fetchAssignments,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: const Text("Làm mới", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      )
+          : RefreshIndicator(
+        onRefresh: fetchAssignments,
+        color: Colors.teal,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(8),
+          itemCount: assignments.length,
+          itemBuilder: (context, index) {
+            final a = assignments[index];
+            final role = a['Role']?.toLowerCase() ?? '';
+            Color roleColor = role.contains('main')
+                ? Colors.teal
+                : role.contains('assistant')
+                ? Colors.blue
+                : Colors.grey;
+
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: roleColor,
+                  child: Text(
+                    a['GuideName']?.substring(0, 1).toUpperCase() ?? 'G',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                title: Text(
+                  "${a['GuideName']} (${a['Role']})",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Text(
+                      "Tour: ${a['TourName']}",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    Text(
+                      "Ngày: ${formatDate(a['AssignmentDate'])}",
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => deleteAssignment(a['TourID'], a['GuideID']),
+                  tooltip: "Xóa phân công",
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
