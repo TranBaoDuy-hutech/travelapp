@@ -109,7 +109,19 @@ class _AccountPageState extends State<AccountPage> with TickerProviderStateMixin
                       _buildInfoSection(customer),
                       const SizedBox(height: 24),
                       _buildActionButtons(),
-                      const SizedBox(height: 100),
+                      const SizedBox(height: 40),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          "© 2025 Trần Bảo Duy. All rights reserved.",
+                          style: TextStyle(
+                            color: Colors.blue.shade900.withOpacity(0.7),
+                            fontSize: 15,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 60),
                     ],
                   ),
                 ),
@@ -552,7 +564,7 @@ class _AccountPageState extends State<AccountPage> with TickerProviderStateMixin
                 context,
                 MaterialPageRoute(builder: (context) => const MyBookingsPage()),
               ).then((_) {
-                setState(() {}); // cập nhật lại khi quay về
+                setState(() {});
               });
             },
             icon: Icons.history_rounded,
@@ -708,6 +720,7 @@ class _AccountPageState extends State<AccountPage> with TickerProviderStateMixin
                     ),
                   ),
                 ),
+
               ],
             ),
           ],

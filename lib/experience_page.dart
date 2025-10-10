@@ -374,6 +374,17 @@ class _ExperiencePageState extends State<ExperiencePage> {
               },
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              "© 2025 Trần Bảo Duy. All rights reserved.",
+              style: TextStyle(
+                color: Colors.blue.shade900.withOpacity(0.7),
+                fontSize: 15,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
         ],
       ),
     );
