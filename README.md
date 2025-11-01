@@ -1,3 +1,4 @@
+![Mô tả hình](./assets/logo3.jpg)
 GIỚI THIỆU: 
 
 Hệ thống Việt Lữ Travel là một nền tảng du lịch thông minh được phát triển nhằm đáp ứng nhu cầu du lịch trực tuyến ngày càng tăng cao tại Việt Nam. Trong bối cảnh công nghệ số đang tác động mạnh mẽ đến mọi lĩnh vực, việc số hóa các hoạt động du lịch không chỉ giúp nâng cao hiệu quả quản lý mà còn mang đến cho khách hàng những trải nghiệm thuận tiện, nhanh chóng và an toàn.
@@ -9,4 +10,4 @@ Hệ thống được phát triển dựa trên các công nghệ hiện đại 
 Mục tiêu của hệ thống là mang đến một nền tảng du lịch toàn diện, an toàn và thông minh, giúp doanh nghiệp quản lý tour, khách hàng và phản hồi một cách hiệu quả, đồng thời nâng cao trải nghiệm của người dùng.
 
 BÁO CÁO: 
-![Mô tả hình](./assets/logo3.jpg)
+📘 [Tải file Word báo cáo đồ án (.docx)](./Báo cáo_Moblie.docx)
