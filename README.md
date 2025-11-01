@@ -1,4 +1,4 @@
-# ĐÒ ÁN LẬP TRÌNH MOBILE
+# ĐỒ ÁN LẬP TRÌNH MOBILE
 # ỨNG DỤNG ĐẶT TOUR DU LỊCH | VIỆT LỮ TRAVEL
 <img src="./assets/dl.jpg" alt="Logo">
 
