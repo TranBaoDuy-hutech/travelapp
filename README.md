@@ -1,4 +1,5 @@
-![Mô tả hình](./assets/logo3.jpg)
+<img src="./assets/logo3.jpg" alt="Logo" width="400">
+
 GIỚI THIỆU: 
 
 Hệ thống Việt Lữ Travel là một nền tảng du lịch thông minh được phát triển nhằm đáp ứng nhu cầu du lịch trực tuyến ngày càng tăng cao tại Việt Nam. Trong bối cảnh công nghệ số đang tác động mạnh mẽ đến mọi lĩnh vực, việc số hóa các hoạt động du lịch không chỉ giúp nâng cao hiệu quả quản lý mà còn mang đến cho khách hàng những trải nghiệm thuận tiện, nhanh chóng và an toàn.
